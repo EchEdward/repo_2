@@ -20,6 +20,11 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
           echo -e "Host github.com\n  StrictHostKeyChecking no\n" >> ~/.ssh/config
 
+      - name: Configure Git user
+        run: |
+          git config --global user.email "github-actions-bot@users.noreply.github.com"
+          git config --global user.name "GitHub Actions Bot"
+
       - name: Update submodule
         run: |
           echo "Submodule to update: $SUBMODULE"
