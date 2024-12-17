@@ -1,0 +1,73 @@
+name: Update Submodule
+
+on:
+  workflow_dispatch:
+
+jobs:
+  update-submodule-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: staging
+
+      - name: Set up SSH key for private submodule
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host github.com\n  StrictHostKeyChecking no\n" >> ~/.ssh/config
+
+      - name: Configure Git user
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
+      - name: Update submodule
+        run: |
+          echo "Submodule to update: $SUBMODULE"
+          git submodule init $SUBMODULE
+          git submodule update --remote $SUBMODULE
+          git add $SUBMODULE
+          git commit -m "Updated submodule $SUBMODULE on $(date '+%Y-%m-%d %H:%M:%S')"
+          git push origin main
+        env:
+          SUBMODULE: "github-api-test"
+
+      - name: Update GitHub Actions Variable
+        env:
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+        run: |
+          GITHUB_API_URL="https://api.github.com/repos/$OWNER/$REPO/actions/variables"
+          AUTH_HEADER="Authorization: Bearer $PERSONAL_ACCESS_TOKEN"
+          ACCEPT_HEADER="Accept: application/vnd.github+json"
+          API_VERSION_HEADER="X-GitHub-Api-Version: 2022-11-28"
+
+          VARIABLE_NAME="LAST_MODULAR_UPDATE_DATE"
+          VARIABLE_VALUE=$(date '+%Y-%m-%d %H:%M:%S') # Текущий datetime
+
+          response=$(curl -s -L -H "$AUTH_HEADER" -H "$ACCEPT_HEADER" -H "$API_VERSION_HEADER" "$GITHUB_API_URL/$VARIABLE_NAME")
+
+          if echo "$response" | grep -q '"message": "Not Found"'; then
+            echo "Variable $VARIABLE_NAME not found. Creating..."
+            curl -s -L -X POST -o /dev/null \
+              -H "$AUTH_HEADER" \
+              -H "$ACCEPT_HEADER" \
+              -H "$API_VERSION_HEADER" \
+              -d "{\"name\":\"$VARIABLE_NAME\",\"value\":\"$VARIABLE_VALUE\"}" \
+              "$GITHUB_API_URL"
+            echo "Variable $VARIABLE_NAME created successfully with value $VARIABLE_VALUE."
+          else
+            echo "Variable $VARIABLE_NAME found. Updating..."
+            curl -s -L -X PATCH  -o /dev/null \
+              -H "$AUTH_HEADER" \
+              -H "$ACCEPT_HEADER" \
+              -H "$API_VERSION_HEADER" \
+              -d "{\"name\":\"$VARIABLE_NAME\",\"value\":\"$VARIABLE_VALUE\"}" \
+              "$GITHUB_API_URL/$VARIABLE_NAME"
+            echo "Variable $VARIABLE_NAME updated successfully with value $VARIABLE_VALUE."
+          fi
