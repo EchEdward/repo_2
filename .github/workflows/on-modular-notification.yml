@@ -32,7 +32,7 @@ jobs:
           git submodule update --remote $SUBMODULE
           git add $SUBMODULE
           git commit -m "Updated submodule $SUBMODULE on $(date '+%Y-%m-%d %H:%M:%S')"
-          git push origin main
+          git push origin staging
         env:
           SUBMODULE: "github-api-test"
 
