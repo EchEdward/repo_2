@@ -1,0 +1,4 @@
+[submodule "github-api-test"]
+	path = github-api-test
+	url = git@github.com:EchEdward/github-api-test.git
+	branch = main

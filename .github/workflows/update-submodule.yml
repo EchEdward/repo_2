@@ -1,0 +1,33 @@
+name: Update Submodule
+
+on:
+  repository_dispatch:
+    types: [update-submodule]
+
+jobs:
+  update-submodule-job:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          ref: main
+          submodules: recursive
+
+      - name: Set up SSH key for private submodule
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host github.com\n  StrictHostKeyChecking no\n" >> ~/.ssh/config
+
+      - name: Update submodule
+        run: |
+          echo "Submodule to update: $SUBMODULE"
+          git submodule update --remote $SUBMODULE
+          git add $SUBMODULE
+          git commit -m "Updated submodule $SUBMODULE on $(date '+%Y-%m-%d %H:%M:%S')"
+          git push origin main
+        env:
+          SUBMODULE: "github-api-test"
