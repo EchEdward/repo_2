@@ -1,0 +1,89 @@
+name: Check and Update Submodule
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Запуск каждый день в 00:00 UTC
+  workflow_dispatch:
+
+jobs:
+  check-and-update-submodule:
+    runs-on: ubuntu-latest
+    if: github.ref_name == 'main' || github.ref_name == 'staging'
+    env:
+      SUBMODULE_PATH: "github-api-test"
+      FIST_BRANCH_NAME: "main"
+      SECOND_BRANCH_NAME: "staging"
+      FIST_BRANCH_DELAY: 1440
+      SECOND_BRANCH_DELAY: 1
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          # submodules: recursive
+          ref: ${{ github.ref_name }
+
+      - name: Set up SSH key for private submodule
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo -e "Host github.com\n  StrictHostKeyChecking no\n" >> ~/.ssh/config
+
+      - name: Set branch-specific DIFF
+        id: set_diff
+        run: |
+          if [ "${{ github.ref_name }}" = "$FIST_BRANCH_NAME" ]; then
+            echo "TARGET_DIFF=$FIST_BRANCH_DELAY" >> $GITHUB_ENV # 1440 minutes = 1 day
+          elif [ "${{ github.ref_name }}" = "$SECOND_BRANCH_NAME" ]; then
+            echo "TARGET_DIFF=$SECOND_BRANCH_DELAY" >> $GITHUB_ENV # 1 minute
+          else
+            echo "Unknown branch. Exiting..."
+            exit 1
+          fi
+
+      - name: Check latest submodule commit
+        id: check_submodule
+        run: |
+          git submodule init $SUBMODULE_PATH
+          cd $SUBMODULE_PATH
+
+          # Get current commit of submodule in the main repo
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          echo "CURRENT_COMMIT=${CURRENT_COMMIT}" >> $GITHUB_ENV
+
+          # Check new commit for submodule
+          git fetch
+          LATEST_COMMIT=$(git rev-parse origin/main)
+          echo "LATEST_COMMIT=${LATEST_COMMIT}" >> $GITHUB_ENV
+
+          # Check date of next commit
+          NEXT_COMMIT=$(git rev-list $CURRENT_COMMIT..$LATEST_COMMIT | tail -1)
+          if [ -z "$NEXT_COMMIT" ]; then
+            echo "No new commits in the submodule."
+            echo "UPDATE_REQUIRED=false" >> $GITHUB_ENV
+          else
+            COMMIT_DATE=$(git show -s --format=%ci $NEXT_COMMIT)
+            COMMIT_TIMESTAMP=$(date -d "$COMMIT_DATE" +%s)
+            CURRENT_TIMESTAMP=$(date +%s)
+            echo "Next commit hash and date: $NEXT_COMMIT $COMMIT_DATE"
+
+            # Check difference in minutes
+            DIFF=$(( (CURRENT_TIMESTAMP - COMMIT_TIMESTAMP) / 60 ))
+            if [ "$DIFF" -ge $TARGET_DIFF ]; then
+              echo "UPDATE_REQUIRED=true" >> $GITHUB_ENV
+            else
+              echo "UPDATE_REQUIRED=false" >> $GITHUB_ENV
+            fi
+          fi
+
+      - name: Update submodule if required
+        if: env.UPDATE_REQUIRED == 'true'
+        run: |
+          # Update submodule
+
+          echo "Submodule to update: $SUBMODULE_PATH"
+          git submodule update --remote $SUBMODULE_PATH
+          git add $SUBMODULE_PATH
+          git commit -m "Updated submodule $SUBMODULE_PATH on $(date '+%Y-%m-%d %H:%M:%S')"
+          git push origin ${{ github.ref_name }}
