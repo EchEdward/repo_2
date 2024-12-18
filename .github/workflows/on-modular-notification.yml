@@ -19,7 +19,7 @@ jobs:
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer $PERSONAL_ACCESS_TOKEN" \
           -H "X-GitHub-Api-Version: 2022-11-28" \
-          -d '{"ref":"main" "inputs":{"date":"in 1 hour"}}' \
+          -d '{"ref":"main", "inputs":{"date":"in 1 hour"}}' \
           https://api.github.com/repos/$OWNER/$REPO/actions/workflows/schedule-submodule-update.yml/dispatches)
 
         # Check the HTTP response code
