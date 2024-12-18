@@ -1,4 +1,4 @@
-name: Update Modular Submodule (staging)
+name: Modular notification workflow
 
 on:
   workflow_dispatch:
@@ -8,8 +8,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      OWNER: ${{ secrets.OWNER }}
-      REPO: ${{ secrets.REPO }}
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
 
     steps:
     - name: Send webhook to schedule submodule update on main branch
