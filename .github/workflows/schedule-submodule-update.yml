@@ -1,8 +1,8 @@
-name: Update Modular Submodule (prod)
+name: Schedule Update Modular submodule
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # Every 6 hours
+    - cron: '0 */4 * * *' # Every 4 hours
   workflow_dispatch:
     inputs:
       date:
@@ -22,8 +22,8 @@ jobs:
     steps:
       - uses: austenstone/schedule@v1.3
         with:
-          github-token: ${{ secrets.TOKEN }}
+          github-token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           date: ${{ github.event.inputs.date }}
-          workflow: 'basic.yml'
+          workflow: 'periodic-submodule-update.yml'
           timezone: 'Europe/Warsaw'
           wait-ms: 45000

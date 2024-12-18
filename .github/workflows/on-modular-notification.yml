@@ -4,42 +4,47 @@ on:
   workflow_dispatch:
 
 jobs:
-  update-submodule-job:
+  send_webhook:
     runs-on: ubuntu-latest
+    env:
+      PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      OWNER: ${{ secrets.OWNER }}
+      REPO: ${{ secrets.REPO }}
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          ref: staging
+    - name: Send webhook to schedule submodule update on main branch
+      run: |
+        response=$(curl -s -o response.txt -w "%{http_code}" -L \
+          -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer $PERSONAL_ACCESS_TOKEN" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          -d '{"ref":"main" "inputs":{"date":"in 1 hour"}}' \
+          https://api.github.com/repos/$OWNER/$REPO/actions/workflows/schedule-submodule-update.yml/dispatches)
 
-      - name: Set up SSH key for private submodule
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          echo -e "Host github.com\n  StrictHostKeyChecking no\n" >> ~/.ssh/config
+        # Check the HTTP response code
+        if [[ "$response" -ne 204 ]]; then
+          echo "Webhook failed with response code $response"
+          exit 1  # Fail the job if the response code is not 204
+        else
+          echo "Webhook triggered successfully!"
+        fi
 
-      - name: Configure Git user
-        run: |
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
+    - name: Send webhook to trigger submodule update on staging
+      run: |
+        response=$(curl -s -o response.txt -w "%{http_code}" -L \
+          -X POST \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer $PERSONAL_ACCESS_TOKEN" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          -d '{"ref":"staging"}' \
+          https://api.github.com/repos/$OWNER/$REPO/actions/workflows/periodic-submodule-update.yml/dispatches)
 
-      - name: Update submodule
-        run: |
-          echo "Submodule to update: $SUBMODULE"
-          git submodule init $SUBMODULE
-          git submodule update --remote $SUBMODULE
-          git add $SUBMODULE
-          git commit -m "Updated submodule $SUBMODULE on $(date '+%Y-%m-%d %H:%M:%S')"
-          git push origin staging
-        env:
-          SUBMODULE: "github-api-test"
+        # Check the HTTP response code
+        if [[ "$response" -ne 204 ]]; then
+          echo "Webhook failed with response code $response"
+          exit 1  # Fail the job if the response code is not 204
+        else
+          echo "Webhook triggered successfully!"
+        fi
 
-      - name: Update GitHub Actions Variable
-        env:
-          OWNER: ${{ github.repository_owner }}
-          REPO: ${{ github.event.repository.name }}
-          PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        run: |
-          .github/scripts/update_variable.sh $OWNER $REPO $PERSONAL_ACCESS_TOKEN "MODULAR_REQUIRE_UPDATE" "true"

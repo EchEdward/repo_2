@@ -2,7 +2,7 @@ name: Check and Update Submodule
 
 on:
   schedule:
-    - cron: '0 0 * * *' # Запуск каждый день в 00:00 UTC
+    - cron: '0 0 * * *' # Run every day at 0:00
   workflow_dispatch:
 
 jobs:
@@ -13,8 +13,8 @@ jobs:
       SUBMODULE_PATH: "github-api-test"
       FIST_BRANCH_NAME: "main"
       SECOND_BRANCH_NAME: "staging"
-      FIST_BRANCH_DELAY: 1440
-      SECOND_BRANCH_DELAY: 1
+      FIST_BRANCH_DELAY: 1440 # minutes
+      SECOND_BRANCH_DELAY: 0 # minutes
       SUBMODULE_BRANCH: "main"
 
     steps:
