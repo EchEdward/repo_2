@@ -59,6 +59,7 @@ jobs:
 
           # Check date of next commit
           NEXT_COMMIT=$(git rev-list $CURRENT_COMMIT..$LATEST_COMMIT | tail -1)
+          echo "NEXT_COMMIT=${NEXT_COMMIT}"
           if [ -z "$NEXT_COMMIT" ]; then
             echo "No new commits in the submodule."
             echo "UPDATE_REQUIRED=false" >> $GITHUB_ENV
