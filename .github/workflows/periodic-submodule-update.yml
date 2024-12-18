@@ -76,6 +76,7 @@ jobs:
 
             # Check difference in minutes
             DIFF=$(( (CURRENT_TIMESTAMP - COMMIT_TIMESTAMP) / 60 ))
+            echo "DIFF=${DIFF}"
             if [ "$DIFF" -ge $TARGET_DIFF ]; then
               echo "UPDATE_REQUIRED=true" >> $GITHUB_ENV
             else
