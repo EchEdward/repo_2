@@ -42,6 +42,11 @@ jobs:
             exit 1
           fi
 
+      - name: Configure Git user
+        run: |
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+
       - name: Check latest submodule commit
         id: check_submodule
         run: |
