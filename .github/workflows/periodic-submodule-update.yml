@@ -15,6 +15,7 @@ jobs:
       SECOND_BRANCH_NAME: "staging"
       FIST_BRANCH_DELAY: 1440
       SECOND_BRANCH_DELAY: 1
+      SUBMODULE_BRANCH: "main"
 
     steps:
       - name: Set up SSH key for private submodule
@@ -59,7 +60,7 @@ jobs:
 
           # Check new commit for submodule
           git fetch
-          LATEST_COMMIT=$(git rev-parse origin/main)
+          LATEST_COMMIT=$(git rev-parse origin/${SUBMODULE_BRANCH})
           echo "LATEST_COMMIT=${LATEST_COMMIT}"
 
           # Check date of next commit
