@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           # submodules: recursive
-          ref: ${{ github.ref_name }}q
+          ref: ${{ github.ref_name }}
 
       - name: Set up SSH key for private submodule
         run: |
