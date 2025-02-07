@@ -4,6 +4,16 @@ on:
   schedule:
     - cron: '0 0 * * *' # Run every day at 0:00
   workflow_dispatch:
+    inputs:
+      source_branch:
+        description: 'Trigger source branch'
+        required: true
+        default: 'main'
+        type: choice
+        options:
+        - "main"
+        - "16.0"
+        - "18.0"
 
 jobs:
   check-and-update-submodule:
@@ -16,8 +26,11 @@ jobs:
       FIST_BRANCH_DELAY: 1440 # minutes
       SECOND_BRANCH_DELAY: 0 # minutes
       SUBMODULE_BRANCH: "main"
+      TRIGGER_SOURCE_BRANCH: ${{ github.event_name == 'schedule' && 'main' || github.event.inputs.source_branch }}
 
     steps:
+      - name: Print TRIGGER_SOURCE_BRANCH
+        run: echo "TRIGGER_SOURCE_BRANCH = $TRIGGER_SOURCE_BRANCH"
       - name: Set up SSH key for private submodule
         run: |
           mkdir -p ~/.ssh
